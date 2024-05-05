@@ -1,0 +1,216 @@
+public class frmEstudiante extends javax.swing.JFrame {
+
+    /**
+     * Creates new form frmEstudiante
+     */
+    private StudentApiConsumer apiConsumer;
+    private DefaultTableModel modelTable;
+    private final String[] titlesTable = new String[]{"Cedula", "Nombre", "Apellido", "Dirección", "Telefono"};
+
+    public frmEstudiante() {
+        initComponents();
+        this.apiConsumer = new StudentApiConsumer();
+        this.modelTable = new DefaultTableModel(titlesTable, 0);
+        jtblEstudiantes.setModel(modelTable);
+        cargarDatos();
+        
+        jtblEstudiantes.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                int row = jtblEstudiantes.getSelectedRow();
+                if (row == -1) {
+                    return;
+                }
+
+                jtxtCedula.setText(jtblEstudiantes.getValueAt(row, 0).toString());
+                jtxtNombre.setText(jtblEstudiantes.getValueAt(row, 1).toString());
+                jtxtApellido.setText(jtblEstudiantes.getValueAt(row, 2).toString());
+                jtxtDireccion.setText(jtblEstudiantes.getValueAt(row, 3).toString());
+                jtxtTelefono.setText(jtblEstudiantes.getValueAt(row, 4).toString());
+                
+            }
+            
+        });
+    }
+
+    private void cargarDatos() {
+        this.modelTable.setNumRows(0);
+        List<Student> students = apiConsumer.getAll();
+        for (Student student : students) {
+            this.modelTable.addRow(new Object[]{student.getID(), student.getFirstName(), student.getLastName(), student.getAddress(), student.getPhone()});
+        }
+    }
+
+    private void nuevo() {
+        String cedula = jtxtCedula.getText();
+        String nombre = jtxtNombre.getText();
+        String apellido = jtxtApellido.getText();
+        String direccion = jtxtDireccion.getText();
+        String telefono = jtxtTelefono.getText();
+
+        ArrayList<String> errores = validarCampos(cedula, nombre, apellido, direccion, telefono);
+        if (errores.size() > 0) {
+            JOptionPane.showMessageDialog(rootPane, String.join("\n", errores), "Error", JOptionPane.ERROR_MESSAGE, null);
+            return;
+        }
+
+        Student student = new Student(cedula, nombre, apellido, direccion, telefono);
+
+        if (apiConsumer.create(student)) {
+            cargarDatos();
+            limpiarCampos();
+//            JOptionPane.showMessageDialog(rootPane, "Estudiante creado correctamente");
+        } else {
+            JOptionPane.showMessageDialog(rootPane, "Error al crear el estudiante", "Error", JOptionPane.ERROR_MESSAGE, null);
+        }
+
+    }
+
+    private ArrayList<String> validarCampos(String cedula, String nombre, String apellido, String direccion, String telefono) {
+        
+        ArrayList<String> errores = new ArrayList<>();
+        if (cedula.isEmpty() || cedula.isBlank()) {
+            errores.add("La cedula es requerida.");
+        }
+        if (nombre.isEmpty() || nombre.isBlank()) {
+            errores.add("El nombre es requerido.");
+        }
+        if (apellido.isEmpty() || apellido.isBlank()) {
+            errores.add("El apellido es requerido.");
+        }
+        if (direccion.isEmpty() || direccion.isBlank()) {
+            errores.add("La direccion es requerida.");
+        }
+        if (telefono.isEmpty() || telefono.isBlank()) {
+            errores.add("El telefono es requerido.");
+        }
+
+        return errores;
+    }
+    
+
+    private void limpiarCampos() {
+        jtxtCedula.setText("");
+        jtxtNombre.setText("");
+        jtxtApellido.setText("");
+        jtxtDireccion.setText("");
+        jtxtTelefono.setText("");
+    }
+
+    private void editar() {
+        int row = jtblEstudiantes.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(rootPane, "Seleccione un estudiante", "Error", JOptionPane.ERROR_MESSAGE, null);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(rootPane, "¿Está seguro de editar el estudiante?", "Confirmar", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (confirm == JOptionPane.NO_OPTION) {
+            return;
+        }
+
+        String cedula = jtblEstudiantes.getValueAt(row, 0).toString();
+        String nombre = jtxtNombre.getText();
+        String apellido = jtxtApellido.getText();
+        String direccion = jtxtDireccion.getText();
+        String telefono = jtxtTelefono.getText();
+
+        ArrayList<String> errores = validarCampos(cedula, nombre, apellido, direccion, telefono);
+        if (errores.size() > 0) {
+            JOptionPane.showMessageDialog(rootPane, String.join("\n", errores), "Error", JOptionPane.ERROR_MESSAGE, null);
+            return;
+        }
+
+        Student student = new Student(cedula, nombre, apellido, direccion, telefono);
+
+        if (apiConsumer.update(student)) {
+            cargarDatos();
+            limpiarCampos();
+            JOptionPane.showMessageDialog(rootPane, "Estudiante actualizado correctamente");
+        } else {
+            JOptionPane.showMessageDialog(rootPane, "Error al actualizar el estudiante", "Error", JOptionPane.ERROR_MESSAGE, null);
+        }
+    }
+
+    private void eliminar() {
+        int row = jtblEstudiantes.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(rootPane, "Seleccione un estudiante", "Error", JOptionPane.ERROR_MESSAGE, null);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(rootPane, "¿Está seguro de eliminar el estudiante?", "Confirmar", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (confirm == JOptionPane.NO_OPTION) {
+            return;
+        }
+        
+        String cedula = jtblEstudiantes.getValueAt(row, 0).toString();
+        if (apiConsumer.delete(cedula)) {
+            cargarDatos();
+            limpiarCampos();
+            JOptionPane.showMessageDialog(rootPane, "Estudiante eliminado correctamente");
+        } else {
+            JOptionPane.showMessageDialog(rootPane, "Error al eliminar el estudiante", "Error", JOptionPane.ERROR_MESSAGE, null);
+        }
+    }
+    
+
+    private void jtxtNombreActionPerformed(java.awt.event.ActionEvent evt) {                                           
+        // TODO add your handling code here:
+    }                                          
+
+    private void jbtnNuevoActionPerformed(java.awt.event.ActionEvent evt) {                                          
+        nuevo();
+    }                                         
+
+    private void jbtnEliminarActionPerformed(java.awt.event.ActionEvent evt) {                                             
+        eliminar();
+    }                                            
+
+    private void jbtnEditarActionPerformed(java.awt.event.ActionEvent evt) {                                           
+        editar();
+    }                                          
+
+    private void jbtnLimpiarActionPerformed(java.awt.event.ActionEvent evt) {                                            
+        limpiarCampos();
+    }                                           
+
+    private void jtxtCedulaActionPerformed(java.awt.event.ActionEvent evt) {                                           
+        // TODO add your handling code here:
+    }    
+
+
+
+
+     public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         */
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(frmEstudiante.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            java.util.logging.Logger.getLogger(frmEstudiante.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            java.util.logging.Logger.getLogger(frmEstudiante.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(frmEstudiante.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        //</editor-fold>
+        FlatMacDarkLaf.setup();
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new frmEstudiante().setVisible(true);
+            }
+        });
+    }
